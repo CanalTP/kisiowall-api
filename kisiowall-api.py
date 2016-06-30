@@ -60,7 +60,7 @@ def get_volume_call_summarize():
 
     try:
         r = requests.get(config['url_newrelic'], headers=config['headers_newrelic'], params=data)
-        print(r.text)
+
         if r.status_code == 200:
             content = r.text
             status_code = status.HTTP_200_OK
