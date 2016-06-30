@@ -1,9 +1,10 @@
 from flask import Flask
 from flask_api import status
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import requests
 import yaml
+import pytz
 
 
 CONFIGURATION_FILE = "kisiowall-api.yaml"
@@ -24,9 +25,11 @@ def get_volume_call():
     """
     content = None
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    datetime_24_hours_ago = datetime.now(tz=pytz.utc) - timedelta(hours=24)
 
     # Define data to post
-    data = 'names[]=Agent/MetricsReported/count'
+    data = 'names[]=HttpDispatcher&from=%s&to=%s' % (datetime_24_hours_ago.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                                                     datetime.now(tz=pytz.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00"))
 
     try:
         r = requests.get(config['url_newrelic'], headers=config['headers_newrelic'], params=data)
@@ -49,14 +52,15 @@ def get_volume_call_summarize():
     """
     content = None
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    today = datetime.now().strftime("%Y-%m-%dT00:00:00+00:00")
+    datetime_24_hours_ago = datetime.now(tz=pytz.utc) - timedelta(hours=24)
 
     # Define data to post
-    data = 'names[]=Agent/MetricsReported/count&from=%s&summarize=true' % today
+    data = 'names[]=HttpDispatcher&from=%s&to=%s&summarize=true' % (datetime_24_hours_ago.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                                                                    datetime.now(tz=pytz.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00"))
 
     try:
         r = requests.get(config['url_newrelic'], headers=config['headers_newrelic'], params=data)
-
+        print(r.text)
         if r.status_code == 200:
             content = r.text
             status_code = status.HTTP_200_OK
@@ -75,9 +79,10 @@ def get_volume_errors():
     """
     content = None
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    today = datetime.now().strftime("%Y-%m-%dT00:00:00+00:00")
+    datetime_24_hours_ago = datetime.now(tz=pytz.utc) - timedelta(hours=24)
 
-    data = 'names[]=Errors/all&from=%s&summarize=true' % today
+    # Define data to post
+    data = 'names[]=Errors/all&from=%s&summarize=true' % datetime_24_hours_ago.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
     try:
         r = requests.get(config['url_newrelic'], headers=config['headers_newrelic'], params=data)
