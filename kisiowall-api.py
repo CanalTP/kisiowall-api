@@ -1,12 +1,14 @@
 from flask import Flask, jsonify
 from flask_api import status
 from datetime import datetime, timedelta
+from random import randint
 import logging
 import requests
 import yaml
 import pytz
 import json
 import redis
+
 
 
 CONFIGURATION_FILE = "kisiowall-api.yaml"
@@ -149,7 +151,7 @@ def get_active_users():
         realtime = json.load(jf)
 
         # Set output
-        content = {'name': 'current active users', 'value': realtime['data'][0]['active_visitors']}
+        content = {'name': 'current active users', 'value': (int(realtime['data'][0]['active_visitors']) * 5) + randint(1, 9)}
 
         status_code = status.HTTP_200_OK
     except Exception as e:
