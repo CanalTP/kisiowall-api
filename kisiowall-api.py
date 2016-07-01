@@ -7,7 +7,6 @@ import requests
 import yaml
 import pytz
 import json
-import redis
 
 
 
@@ -169,31 +168,15 @@ def get_downloads_by_store():
     content = None
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    content = json.dumps({'google_play': '233875', 'ios_store': '491488'})
-
-    """
     try:
-        if (datetime.now - timedelta(hours=1)) > last_cache_update:
-            try:
-                dl_response = make_request("/reports/sales/?group_by=store")
-
-                if dl_response.status_code == 200:
-                    content =  {'google_play': dl_response.json()['google_play']['downloads'],
-                             'ios_store': dl_response.json()['apple:ios']['downloads']}
-                    status_code = status.HTTP_200_OK
-                    cache_connexion = redis.Redis(connection_pool=pool)
-                    cache_connexion.set('dlbyapp', content)
-                    last_cache_update = datetime.now()
-            except Exception as e:
-                content = str(e)
-        else:
-            cache_connexion = redis.Redis(connection_pool=pool)
-            content = cache_connexion.get('dlbyapp')
+        dl_response = make_request("/reports/sales/?group_by=store")
+        if dl_response.status_code == 200:
+            content =  {'google_play': dl_response.json()['google_play']['downloads'],'ios_store': dl_response.json()['apple:ios']['downloads']}
+            status_code = status.HTTP_200_OK
     except Exception as e:
         content = str(e)
-    """
 
-    return jsonify(content), status_code
+    return content, status_code
 
 
 def app_logging(log_file, lvl=logging.INFO):
