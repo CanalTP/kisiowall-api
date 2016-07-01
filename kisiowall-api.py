@@ -61,6 +61,48 @@ def get_total_call():
 
     return jsonify(content), status_code
 
+@app_api.route("/last_review")
+def last_review():
+    """
+    Get the last 5-star review
+    :return: json
+    """
+    content = None
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    try:
+        dl_response = make_request("/reviews?stars=5&lang=fr&sort=date")
+        if dl_response.status_code == 200:
+            content = dl_response.json()
+            content = content["reviews"][0]["original_review"]
+            status_code = status.HTTP_200_OK
+    except Exception as e:
+        content = str(e)
+
+    return jsonify({'last_five_star_review':content}), status_code
+
+
+@app_api.route("/number_of_apps")
+def number_of_apps():
+    """
+    Get all our apps available on all stores
+    :return: json
+    """
+    content = None
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    try:
+        dl_response = make_request("/products/mine")
+        if dl_response.status_code == 200:
+            i = 0
+            content = dl_response
+            for x in content.json().items():
+                i = i + 1
+            status_code = status.HTTP_200_OK
+    except Exception as e:
+        content = str(e)
+
+    return jsonify({'number_of_apps':i}), status_code
 
 @app_api.route("/volume_call")
 def get_volume_call():
