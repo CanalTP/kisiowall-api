@@ -151,8 +151,6 @@ def get_active_users():
     realtime_file = config['google_analytics_reporter_export_path'] + "/realtime.json"
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    content = None
-
     try:
         # Load json file
         jf = open(realtime_file)
@@ -180,8 +178,69 @@ def get_downloads_by_store():
     try:
         dl_response = make_request("/reports/sales/?group_by=store")
         if dl_response.status_code == 200:
-            content = {'google_play': dl_response.json()['google_play']['downloads'],'ios_store': dl_response.json()['apple:ios']['downloads']}
+            content = {'google_play': dl_response.json()['google_play']['downloads'], 'ios_store': dl_response.json()['apple:ios']['downloads']}
             status_code = status.HTTP_200_OK
+    except Exception as e:
+        content = str(e)
+
+    return jsonify(content), status_code
+
+
+@app_api.route("/total_regions")
+def get_total_regions():
+    """
+    Get total regions.
+    :return: json
+    """
+    url = config['url_navitia'] + "coverage/"
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    total_regions = 0
+
+    try:
+        r = requests.get(url, headers=config['headers_navitia'])
+
+        if r.status_code == 200:
+            for id in [r['id'] for r in r.json()["regions"]]:
+
+                r = requests.get("%s%s/networks" % (url, id), headers=config['headers_navitia'])
+
+                if r.status_code == 200:
+                    total_regions += r.json()["pagination"]["total_result"]
+
+            status_code = status.HTTP_200_OK
+
+        content = {'name': 'total regions', 'value': total_regions}
+    except Exception as e:
+        content = str(e)
+
+    return jsonify(content), status_code
+
+
+@app_api.route("/weekly_data_update")
+def get_weekly_data_update():
+    """
+    Get weekly data update.
+    :return: json
+    """
+    url = config['url_navitia'] + "status/"
+
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    update_count = 0
+
+    last_week = datetime.now() - timedelta(days=7)
+
+    try:
+        r = requests.get(url, headers=config['headers_navitia'])
+
+        if r.status_code == 200:
+            for region in r.json()["regions"]:
+
+                publication_date = datetime.strptime(region['publication_date'][0:15], '%Y%m%dT%H%M%S')
+                update_count += (publication_date >= last_week)
+
+            status_code = status.HTTP_200_OK
+
+        content = {'name': 'weekly update data', 'value': update_count}
     except Exception as e:
         content = str(e)
 
@@ -205,7 +264,7 @@ def app_logging(log_file, lvl=logging.INFO):
 
 def make_request(uri, **querystring_params):
     headers = {"X-Client-Key": config['apikey_appfigures']}
-    auth =(config['username_appfigures'], config['password_appfigures'])
+    auth = (config['username_appfigures'], config['password_appfigures'])
     return requests.get(config['url_appfigures'] + uri.lstrip("/"),
                         auth=auth,
                         params=querystring_params,
