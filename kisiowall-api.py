@@ -9,7 +9,6 @@ import pytz
 import json
 
 
-
 CONFIGURATION_FILE = "kisiowall-api.yaml"
 config = None
 
@@ -33,19 +32,29 @@ def get_total_call():
     # Define count user before newrelic
     active_visitors_before_newrelics = 1025779805
 
+    today = datetime.now().strftime("%Y-%m-%dT00:00:00+00:00")
+
     # Define data to post
-    data = 'names[]=HttpDispatcher&from=2015-01-01T00:00:00+00:00&summarize=true'
+    data = ['names[]=HttpDispatcher&from=2016-05-14T00:00:00+00:00&to=%s&summarize=true' % today,
+            'names[]=HttpDispatcher&from=%s&summarize=true' % today]
 
     try:
-        r = requests.get(config['url_newrelic'], headers=config['headers_newrelic'], params=data)
+        for d in data:
+            # Send http requests
+            r = requests.get(config['url_newrelic'], headers=config['headers_newrelic'], params=d)
 
-        if r.status_code == 200:
-            content = r.json()
+            if r.status_code == 200 and content is None:
+                content = r.json()
 
-            # Append with count user before newrelic
-            content['metric_data']['metrics'][0]['timeslices'][0]['values']['call_count'] += active_visitors_before_newrelics
+                # Append with count user before newrelic
+                content['metric_data']['metrics'][0]['timeslices'][0]['values']['call_count'] += active_visitors_before_newrelics
 
-            status_code = status.HTTP_200_OK
+                status_code = status.HTTP_200_OK
+            elif r.status_code == 200 and content is not None:
+                content['metric_data']['metrics'][0]['timeslices'][0]['values']['call_count'] += r.json()['metric_data']['metrics'][0]['timeslices'][0]['values']['call_count']
+                status_code = status.HTTP_200_OK
+            else:
+                status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
     except Exception as e:
         content = str(e)
@@ -171,12 +180,12 @@ def get_downloads_by_store():
     try:
         dl_response = make_request("/reports/sales/?group_by=store")
         if dl_response.status_code == 200:
-            content =  {'google_play': dl_response.json()['google_play']['downloads'],'ios_store': dl_response.json()['apple:ios']['downloads']}
+            content = {'google_play': dl_response.json()['google_play']['downloads'],'ios_store': dl_response.json()['apple:ios']['downloads']}
             status_code = status.HTTP_200_OK
     except Exception as e:
         content = str(e)
 
-    return content, status_code
+    return jsonify(content), status_code
 
 
 def app_logging(log_file, lvl=logging.INFO):
@@ -195,9 +204,9 @@ def app_logging(log_file, lvl=logging.INFO):
 
 
 def make_request(uri, **querystring_params):
-  headers = {"X-Client-Key": config['apikey_appfigures']}
-  auth =(config['username_appfigures'], config['password_appfigures'])
-  return requests.get(config['url_appfigures'] + uri.lstrip("/"),
+    headers = {"X-Client-Key": config['apikey_appfigures']}
+    auth =(config['username_appfigures'], config['password_appfigures'])
+    return requests.get(config['url_appfigures'] + uri.lstrip("/"),
                         auth=auth,
                         params=querystring_params,
                         headers=headers)
