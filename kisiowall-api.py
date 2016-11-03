@@ -61,6 +61,7 @@ def get_total_call():
 
     return jsonify(content), status_code
 
+
 @app_api.route("/last_review")
 def last_review():
     """
@@ -94,15 +95,13 @@ def number_of_apps():
     try:
         dl_response = make_request("/products/mine")
         if dl_response.status_code == 200:
-            i = 0
-            content = dl_response
-            for x in content.json().items():
-                i = i + 1
+            content = {'number_of_apps': len(dl_response.json().items())}
             status_code = status.HTTP_200_OK
     except Exception as e:
         content = str(e)
 
-    return jsonify({'number_of_apps':i}), status_code
+    return jsonify(content), status_code
+
 
 @app_api.route("/volume_call")
 def get_volume_call():
@@ -142,8 +141,9 @@ def get_volume_call_summarize():
     datetime_24_hours_ago = datetime.now(tz=pytz.utc) - timedelta(hours=24)
 
     # Define data to post
-    data = 'names[]=HttpDispatcher&from=%s&to=%s&summarize=true' % (datetime_24_hours_ago.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                                                                    datetime.now(tz=pytz.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00"))
+    data = 'names[]=HttpDispatcher&from=%s&to=%s&summarize=true' % \
+           (datetime_24_hours_ago.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            datetime.now(tz=pytz.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00"))
 
     try:
         r = requests.get(config['url_newrelic'], headers=config['headers_newrelic'], params=data)
@@ -199,7 +199,8 @@ def get_active_users():
         realtime = json.load(jf)
 
         # Set output
-        content = {'name': 'current active users', 'value': (int(realtime['data'][0]['active_visitors']) * 5) + randint(1, 9)}
+        content = {'name': 'current active users',
+                   'value': (int(realtime['data'][0]['active_visitors']) * 5) + randint(1, 9)}
 
         status_code = status.HTTP_200_OK
     except Exception as e:
@@ -220,7 +221,9 @@ def get_downloads_by_store():
     try:
         dl_response = make_request("/reports/sales/?group_by=store")
         if dl_response.status_code == 200:
-            content = {'google_play': dl_response.json()['google_play']['downloads'], 'ios_store': dl_response.json()['apple:ios']['downloads']}
+            content = {'google_play': dl_response.json()['google_play']['downloads'],
+                       'ios_store': dl_response.json()['apple:ios']['downloads']}
+
             status_code = status.HTTP_200_OK
     except Exception as e:
         content = str(e)
